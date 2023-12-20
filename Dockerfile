@@ -1,11 +1,23 @@
-ARG JENKINS_IMAGE=docker.io/jenkins/jenkins
-ARG JENKINS_TAG=lts
-FROM "${JENKINS_IMAGE}:${JENKINS_TAG}"
-COPY plugins.txt plugins.txt
-RUN jenkins-plugin-cli --plugin-file plugins.txt
+# Use the official Jenkins LTS image as the base image
+FROM jenkins/jenkins:lts
+
+# Switch to root user for installation
 USER root
-RUN curl -fsSL https://get.docker.com | sh
+
+# Install Docker CLI inside the Jenkins image
+RUN apt-get update && \
+    apt-get install -y docker.io && \
+    rm -rf /var/lib/apt/lists/*
+
+# Check if the docker group already exists
+RUN group_id=999 && \
+    group_name=docker && \
+    getent group "$group_id" || groupadd -g "$group_id" "$group_name"
+
+# Switch back to the Jenkins user
+USER jenkins
+
+# Add the Jenkins user to the docker group
+USER root
 RUN usermod -aG docker jenkins
-ARG HOST_DOCKER_GID
-RUN groupmod -g "$HOST_DOCKER_GID" docker
 USER jenkins
